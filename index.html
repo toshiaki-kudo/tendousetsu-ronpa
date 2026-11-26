@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>天動説論破シミュレーター</title>
+<meta name="description" content="地動説の正しさを、頑固な天動説の老学者に伝えるゲーム。正しいことを言えば、人は動くのか。">
+<meta property="og:title" content="天動説論破シミュレーター">
+<meta property="og:description" content="正しいことを言えば、人は動くのか。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --lapis: #17224A;
+    --lapis-deep: #0D1430;
+    --gold: #C9A34A;
+    --gold-dim: #8E7535;
+    --vellum: #EADFC5;
+    --vellum-dim: #B9AE95;
+    --verdigris: #5FA595;
+    --wine: #9A4A5A;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(ellipse at 50% 0%, #22306A 0%, transparent 60%),
+      var(--lapis-deep);
+    color: var(--vellum);
+    font-family: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif;
+    font-size: 17px;
+    line-height: 1.9;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 24px 16px 64px;
+  }
+
+  /* 天球図 — この作品の主役 */
+  .orrery-box { display: flex; justify-content: center; }
+  #orrery { width: 100%; max-width: 340px; height: auto; display: block; }
+  .stage-play #orrery { max-width: 220px; }
+
+  h1 {
+    font-weight: 800;
+    font-size: clamp(30px, 8vw, 44px);
+    line-height: 1.3;
+    letter-spacing: 0.08em;
+    text-align: center;
+    margin: 12px 0 4px;
+    color: var(--gold);
+  }
+  .tagline {
+    text-align: center;
+    font-size: 19px;
+    margin: 0 0 28px;
+  }
+  .intro { color: var(--vellum-dim); margin: 0 auto 32px; max-width: 34em; }
+  .intro p { margin: 0 0 1em; }
+
+  /* 銅版画風の二重罫 */
+  .frame {
+    border: 1px solid var(--gold-dim);
+    outline: 1px solid var(--gold-dim);
+    outline-offset: 4px;
+    padding: 20px 22px;
+    margin: 12px 4px 28px;
+    background: rgba(13, 20, 48, 0.6);
+  }
+  .speaker {
+    color: var(--gold);
+    font-weight: 600;
+    font-size: 15px;
+    margin: 0 0 6px;
+  }
+  .line { margin: 0; min-height: 3.8em; font-size: 18px; }
+  .narration { color: var(--vellum-dim); font-size: 15px; margin: 12px 0 0; }
+
+  .progress {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 14px; color: var(--vellum-dim); margin-top: 8px;
+  }
+
+  .meters { display: grid; gap: 10px; margin: 6px 4px 8px; }
+  .meter { display: grid; grid-template-columns: 5.5em 1fr; align-items: center; gap: 12px; font-size: 14px; }
+  .bar { height: 6px; background: rgba(234, 223, 197, 0.12); position: relative; }
+  .bar > span {
+    position: absolute; inset: 0 auto 0 0; width: 0;
+    transition: width 700ms ease;
+  }
+  .bar.logic > span { background: var(--gold); }
+  .bar.heart > span { background: var(--verdigris); }
+
+  .choices { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  .choice {
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--vellum);
+    background: transparent;
+    border: 1px solid rgba(201, 163, 74, 0.45);
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: background 160ms, border-color 160ms;
+  }
+  .choice:hover { background: rgba(201, 163, 74, 0.1); border-color: var(--gold); }
+
+  .btn {
+    display: block;
+    margin: 0 auto;
+    font: inherit;
+    font-weight: 600;
+    font-size: 17px;
+    letter-spacing: 0.1em;
+    color: var(--lapis-deep);
+    background: var(--gold);
+    border: none;
+    padding: 14px 40px;
+    cursor: pointer;
+  }
+  .btn:hover { background: #D8B45C; }
+  .btn.ghost {
+    color: var(--gold); background: transparent; border: 1px solid var(--gold);
+  }
+  .btn.ghost:hover { background: rgba(201, 163, 74, 0.1); }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 28px; }
+  .btn-row .btn { margin: 0; }
+
+  button:focus-visible { outline: 2px solid var(--vellum); outline-offset: 3px; }
+
+  .ending-label { text-align: center; color: var(--vellum-dim); font-size: 15px; margin: 8px 0 0; }
+  .ending-title {
+    text-align: center; font-weight: 800; color: var(--gold);
+    font-size: clamp(26px, 7vw, 36px); letter-spacing: 0.06em; margin: 0 0 16px; line-height: 1.4;
+  }
+  .ending-body p { margin: 0 0 1em; }
+  h2 { font-size: 17px; font-weight: 600; color: var(--gold); margin: 32px 0 10px; }
+  .recap { list-style: none; padding: 0; margin: 0; font-size: 15px; }
+  .recap li { padding: 10px 0; border-bottom: 1px solid rgba(201, 163, 74, 0.2); display: grid; grid-template-columns: 4.5em 1fr; gap: 8px; }
+  .tag { font-size: 13px; }
+  .tag.kind { color: var(--verdigris); }
+  .tag.argue { color: var(--gold); }
+  .tag.bad { color: #C98A97; }
+  .note { color: var(--vellum-dim); font-size: 15px; }
+
+  .hidden { display: none !important; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bar > span { transition: none; }
+  }
+</style>
+</head>
+<body>
+<main class="wrap" id="app">
+
+  <div class="orrery-box">
+    <svg id="orrery" viewBox="0 0 320 320" role="img" aria-label="天球図。博士の頭の中の宇宙。説得が進むと、中心が地球から太陽へ移っていく。">
+      <g id="stars"></g>
+      <circle id="ring-main" fill="none" stroke="#8E7535" stroke-width="0.8" stroke-dasharray="2 4"/>
+      <circle id="ring-1" fill="none" stroke="#8E7535" stroke-width="0.6" opacity="0.7"/>
+      <circle id="ring-2" fill="none" stroke="#8E7535" stroke-width="0.6" opacity="0.7"/>
+      <circle id="ring-3" fill="none" stroke="#8E7535" stroke-width="0.6" opacity="0.7"/>
+      <circle id="p-mercury" r="3" fill="#B9AE95"/>
+      <circle id="p-venus" r="4.5" fill="#EADFC5"/>
+      <circle id="p-mars" r="4" fill="#9A4A5A"/>
+      <g id="sun">
+        <g id="sun-rays" stroke="#C9A34A" stroke-width="1.2"></g>
+        <circle r="11" fill="#C9A34A"/>
+        <text y="27" text-anchor="middle" font-size="10" fill="#C9A34A">太陽</text>
+      </g>
+      <g id="earth">
+        <circle r="7" fill="#5FA595"/>
+        <text y="21" text-anchor="middle" font-size="10" fill="#5FA595">地球</text>
+      </g>
+    </svg>
+  </div>
+
+  <!-- タイトル -->
+  <section id="screen-title">
+    <h1>天動説論破<br>シミュレーター</h1>
+    <p class="tagline">正しいことを言えば、人は動くのか。</p>
+    <div class="intro">
+      <p>17世紀のはじめ。望遠鏡で空をのぞいたあなたは、地球が太陽のまわりを回っていると確信した。</p>
+      <p>相手は、大学で四十年にわたり天動説を教えてきたプトレマリオ博士。この人を説得できれば、学会の空気が変わる。</p>
+      <p>六つの問答で、博士の宇宙を動かしてみよう。上の図は、博士の頭の中の宇宙だ。</p>
+    </div>
+    <button class="btn" id="start">議論をはじめる</button>
+  </section>
+
+  <!-- 問答 -->
+  <section id="screen-play" class="hidden">
+    <div class="progress"><span id="round-label"></span><span>プトレマリオ博士の研究室</span></div>
+    <div class="frame" aria-live="polite">
+      <p class="speaker" id="speaker">プトレマリオ博士</p>
+      <p class="line" id="line"></p>
+      <p class="narration hidden" id="narration"></p>
+    </div>
+    <div class="meters" aria-label="現在の状況">
+      <div class="meter"><span>論の強さ</span><div class="bar logic"><span id="bar-logic"></span></div></div>
+      <div class="meter"><span>心の扉</span><div class="bar heart"><span id="bar-heart"></span></div></div>
+    </div>
+    <div style="margin-top:24px">
+      <ul class="choices" id="choices"></ul>
+      <button class="btn hidden" id="next">次へ</button>
+    </div>
+  </section>
+
+  <!-- 結末 -->
+  <section id="screen-ending" class="hidden">
+    <p class="ending-label">結末</p>
+    <p class="ending-title" id="ending-title"></p>
+    <div class="frame ending-body" id="ending-body"></div>
+    <div class="meters">
+      <div class="meter"><span>論の強さ</span><div class="bar logic"><span id="end-logic"></span></div></div>
+      <div class="meter"><span>心の扉</span><div class="bar heart"><span id="end-heart"></span></div></div>
+    </div>
+    <h2>あなたの問答</h2>
+    <ol class="recap" id="recap"></ol>
+    <h2>史実のこと</h2>
+    <p class="note">第四問で博士が挙げた「星の位置のずれ（年周視差）」は、当時の地動説に対するまっとうな反論でした。実際にそのずれが初めて測定されたのは1838年、ベッセルによってです。正しい側にも、まだ答えられない問いがあった。だからこそ議論には、相手の言い分を認める余地が要るのかもしれません。</p>
+    <div class="btn-row">
+      <button class="btn" id="retry">もう一度議論する</button>
+      <button class="btn ghost" id="share">結果をXでシェア</button>
+    </div>
+  </section>
+
+</main>
+
+<script>
+(() => {
+  // ---------- 問答データ ----------
+  // type: kind = 寄り添い / argue = 論破 / bad = 悪手
+  const ROUNDS = [
+    {
+      q: "地球が動いているだと？ それほどの速さで動けば、我らはとうに振り落とされておるわ。",
+      choices: [
+        { type: "argue", logic: 3, heart: -2,
+          text: "慣性もご存じないんですか。動いているものは、そのまま動き続けるんです。",
+          reaction: "……若造が、私に講義をするつもりか。",
+          narr: "理屈は通った。だが博士の眉間のしわが深くなった。" },
+        { type: "kind", logic: 2, heart: 2,
+          text: "そう感じますよね。でも凪の海を進む船の中では、動いていることに気づかないものです。地球も同じかもしれません。",
+          reaction: "ふむ……船の中、か。たしかに船室では揺れねば分からんな。",
+          narr: "博士は少しだけ考えこんだ。" },
+        { type: "bad", logic: -1, heart: -1,
+          text: "……まあ、我々が地球にしがみついているんですよ、たぶん。",
+          reaction: "しがみつく？ 君は私をからかいに来たのかね。",
+          narr: "説明になっていない。博士はあきれている。" }
+      ]
+    },
+    {
+      q: "では塔の上から石を落としてみよ。地球が動いておるなら、石は後ろへ落ちるはずだ。だが真下に落ちる。",
+      choices: [
+        { type: "argue", logic: 3, heart: -1,
+          text: "進む船のマストから石を落としても、石は足元に落ちます。実験すれば一瞬で分かることです。",
+          reaction: "一瞬で、とな。……そういう言い方は好かん。",
+          narr: "反論の余地はない。ただ、言い方が刺さったようだ。" },
+        { type: "kind", logic: 1, heart: 2,
+          text: "直感ではそう思えますよね。今度、一緒に走る船の上で確かめてみませんか？",
+          reaction: "私を船に乗せる気か。……まあ、考えておこう。",
+          narr: "論としては弱い。けれど、博士の口元がわずかにゆるんだ。" },
+        { type: "bad", logic: 0, heart: -1,
+          text: "石も地球と一緒に動いているからです。たぶん。",
+          reaction: "たぶん、で学問をするな。",
+          narr: "結論は合っている。でも根拠が示せていない。" }
+      ]
+    },
+    {
+      q: "火星がときおり後戻りして見えるのも、周転円の組み合わせで見事に説明できる。偉大なるプトレマイオス先生から千四百年、受け継がれてきた叡智だ。",
+      choices: [
+        { type: "argue", logic: 2, heart: -3,
+          text: "円の上に円を重ねて、継ぎはぎだらけじゃないですか。それを叡智とは言いません。",
+          reaction: "継ぎはぎ、だと？ プトレマイオス先生の叡智を、君はそう呼ぶのか。",
+          narr: "博士は顔を赤くして立ち上がった。" },
+        { type: "kind", logic: 3, heart: 1,
+          text: "あの精巧な計算は本当にすごいと思います。ただ、地球が火星を追い越しているだけ、と考えるともっと単純になるんです。",
+          reaction: "追い越す……？ 内側を走る者が、外側の者を抜く、ということか。",
+          narr: "博士は紙に円を二つ描きはじめた。" },
+        { type: "bad", logic: -1, heart: -2,
+          text: "でも周転円って、見た目がちょっとダサくないですか？",
+          reaction: "……天体の美しさを、君は見た目で語るのか。",
+          narr: "議論が少し後退した。" }
+      ]
+    },
+    {
+      q: "では聞こう。地球が太陽の周りを回るなら、季節ごとに星の位置がずれて見えるはず。だが、そのずれは一度も観測されておらん。",
+      choices: [
+        { type: "kind", logic: 2, heart: 3,
+          text: "鋭いご指摘です。正直、今の観測ではまだ見えません。星が、私たちの想像よりずっと遠いのかもしれません。",
+          reaction: "……ほう。分からぬことを、分からぬと言えるのか、君は。",
+          narr: "博士が、はじめてあなたの目をまっすぐ見た。" },
+        { type: "bad", logic: -2, heart: -2,
+          text: "それは観測の誤差です。気にするほどのことではありません。",
+          reaction: "都合の悪いものは誤差か。それは学問ではなく信仰だ。",
+          narr: "痛いところを突かれ、ごまかしてしまった。" },
+        { type: "argue", logic: 0, heart: -2,
+          text: "見えないからといって、無いとは限りません。証明すべきはそちらです。",
+          reaction: "言葉遊びだな。私の問いには答えておらん。",
+          narr: "言い返しはしたが、何も示せていない。" }
+      ]
+    },
+    {
+      q: "よかろう。そこまで言うなら、証拠を見せてみよ。",
+      choices: [
+        { type: "argue", logic: 3, heart: -2,
+          text: "金星は月のように満ち欠けします。天動説では説明できません。これで議論は終わりです。",
+          reaction: "終わり、か。……終わらせるのは君ではない。",
+          narr: "決定的な証拠だ。しかし博士は腕を組んで黙りこんだ。" },
+        { type: "kind", logic: 2, heart: 2,
+          text: "金星が満ち欠けしているんです。私の言葉より、先生ご自身の目で見ていただけませんか。",
+          reaction: "私の目で、か。……望遠鏡とやらは、どこにある。",
+          narr: "博士の声から、とげが消えていた。" },
+        { type: "bad", logic: -1, heart: -3,
+          text: "若い学者はもうみんな地動説ですよ。先生、時代遅れです。",
+          reaction: "数で真理が決まるなら、天文学者はいらんな。帰りたまえ。",
+          narr: "博士は扉の方を指さした。" }
+      ]
+    },
+    {
+      q: "……仮に、君が正しいとしよう。では、天動説に捧げた私の四十年は、いったい何だったのだ。",
+      choices: [
+        { type: "argue", logic: 1, heart: -2,
+          text: "間違いを認めるのも、学者の仕事です。",
+          reaction: "……正論だな。正論は、ときに残酷だ。",
+          narr: "博士はうつむいたまま、何も言わなかった。" },
+        { type: "kind", logic: 1, heart: 3,
+          text: "先生が四十年かけて残した観測記録があったから、私はこの矛盾に気づけたんです。無駄なんかじゃありません。",
+          reaction: "……私の記録が、か。",
+          narr: "長い沈黙のあと、博士は小さく笑った。" },
+        { type: "bad", logic: 0, heart: -3,
+          text: "まあ、勉強代だと思えばいいんじゃないですか。",
+          reaction: "出ていけ。",
+          narr: "取り返しのつかない一言だった。" }
+      ]
+    }
+  ];
+
+  const LOGIC_MAX = 15, HEART_MIN = -12, HEART_MAX = 13;
+  const LOGIC_OK = 9, HEART_OK = 6;
+
+  const ENDINGS = {
+    true: {
+      title: "望遠鏡をのぞいた夜",
+      body: [
+        "その夜、博士は自分の足で屋上にのぼり、震える手で望遠鏡をのぞいた。細く欠けた金星を見つめたまま、しばらく動かなかった。",
+        "翌月の講義で、博士はこう切り出したという。「諸君、私はひとつ、考えを改めねばならん」",
+        "あなたは議論に勝ったのではない。博士が、自分で答えにたどり着く道をつくったのだ。"
+      ]
+    },
+    argued: {
+      title: "完全論破、そして閉ざされた扉",
+      body: [
+        "博士は最後まで反論できなかった。理屈のうえでは、あなたの完勝だ。",
+        "けれど博士は二度と望遠鏡をのぞかず、講義でも天動説を教え続けた。言い負かされた人は、考えを変えるより先に、心を閉ざす。",
+        "正しさは、届けかたを間違えると届かない。"
+      ]
+    },
+    friendly: {
+      title: "よき茶飲み友達",
+      body: [
+        "議論のあと、博士はお茶をいれてくれた。話していて楽しい若者だ、と言って。",
+        "ただ、天動説は少しも揺らいでいない。博士の宇宙の中心には、今日も地球がある。",
+        "心の扉は開いた。あとは、その先に何を届けるかだ。"
+      ]
+    },
+    banned: {
+      title: "研究室出入り禁止",
+      body: [
+        "あなたは研究室から丁重に、いや、あまり丁重ではなく追い出された。",
+        "論も届かず、心も離れた。博士の宇宙は、前より少しだけ頑なになった。",
+        "もう一度、別の言葉で挑んでみよう。"
+      ]
+    }
+  };
+
+  // ---------- 状態 ----------
+  let idx = 0, logic = 0, heart = 0, history = [];
+  let targetT = 0, t = 0;
+
+  const $ = (id) => document.getElementById(id);
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------- 天球図 ----------
+  const CX = 160, CY = 160, R = 98;
+  const PLANETS = [
+    { el: $("p-mercury"), ring: $("ring-1"), r: 36, speed: 0.024, a: 1.0 },
+    { el: $("p-venus"), ring: $("ring-2"), r: 60, speed: 0.015, a: 3.2 },
+    { el: $("p-mars"), ring: $("ring-3"), r: 136, speed: 0.005, a: 5.0 }
+  ];
+  let mainAngle = 0.6;
+
+  // 星と太陽の光線
+  (() => {
+    const stars = $("stars");
+    let seed = 7;
+    const rand = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+    for (let i = 0; i < 60; i++) {
+      const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      c.setAttribute("cx", (rand() * 320).toFixed(1));
+      c.setAttribute("cy", (rand() * 320).toFixed(1));
+      c.setAttribute("r", (rand() * 0.9 + 0.3).toFixed(2));
+      c.setAttribute("fill", "#EADFC5");
+      c.setAttribute("opacity", (rand() * 0.5 + 0.2).toFixed(2));
+      stars.appendChild(c);
+    }
+    const rays = $("sun-rays");
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      l.setAttribute("x1", (Math.cos(a) * 13).toFixed(2));
+      l.setAttribute("y1", (Math.sin(a) * 13).toFixed(2));
+      l.setAttribute("x2", (Math.cos(a) * (i % 2 ? 16 : 19)).toFixed(2));
+      l.setAttribute("y2", (Math.sin(a) * (i % 2 ? 16 : 19)).toFixed(2));
+      rays.appendChild(l);
+    }
+    $("ring-main").setAttribute("cx", CX);
+    $("ring-main").setAttribute("cy", CY);
+    $("ring-main").setAttribute("r", R);
+  })();
+
+  function drawOrrery() {
+    // t=0: 地球が中心（天動説） / t=1: 太陽が中心（地動説）
+    const ox = Math.cos(mainAngle) * R, oy = Math.sin(mainAngle) * R;
+    const sun = { x: CX + ox * (1 - t), y: CY + oy * (1 - t) };
+    const earth = { x: CX - ox * t, y: CY - oy * t };
+    const pc = { x: earth.x + (sun.x - earth.x) * t, y: earth.y + (sun.y - earth.y) * t };
+    $("sun").setAttribute("transform", `translate(${sun.x.toFixed(2)} ${sun.y.toFixed(2)})`);
+    $("earth").setAttribute("transform", `translate(${earth.x.toFixed(2)} ${earth.y.toFixed(2)})`);
+    PLANETS.forEach((p) => {
+      p.el.setAttribute("cx", (pc.x + Math.cos(p.a) * p.r).toFixed(2));
+      p.el.setAttribute("cy", (pc.y + Math.sin(p.a) * p.r).toFixed(2));
+      p.ring.setAttribute("cx", pc.x.toFixed(2));
+      p.ring.setAttribute("cy", pc.y.toFixed(2));
+      p.ring.setAttribute("r", p.r);
+    });
+  }
+
+  function tick() {
+    if (!reduceMotion) {
+      mainAngle += 0.006;
+      PLANETS.forEach((p) => (p.a += p.speed));
+      t += (targetT - t) * 0.03;
+    } else {
+      t = targetT;
+    }
+    drawOrrery();
+    requestAnimationFrame(tick);
+  }
+  drawOrrery();
+  requestAnimationFrame(tick);
+
+  // ---------- ユーティリティ ----------
+  const clamp01 = (v) => Math.max(0, Math.min(1, v));
+  const logicRatio = () => clamp01(logic / LOGIC_MAX);
+  const heartRatio = () => clamp01((heart - HEART_MIN) / (HEART_MAX - HEART_MIN));
+  // 論だけでは宇宙は動かない。心の扉が開いているほど、論が効く。
+  const worldShift = () => logicRatio() * (0.15 + 0.85 * heartRatio());
+
+  function updateMeters() {
+    $("bar-logic").style.width = (logicRatio() * 100).toFixed(1) + "%";
+    $("bar-heart").style.width = (heartRatio() * 100).toFixed(1) + "%";
+    targetT = worldShift();
+  }
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  let typingTimer = null, typingDone = null;
+  function typeLine(text, done) {
+    const el = $("line");
+    clearInterval(typingTimer);
+    if (reduceMotion) { el.textContent = text; done && done(); return; }
+    let i = 0;
+    el.textContent = "";
+    typingDone = () => {
+      clearInterval(typingTimer);
+      el.textContent = text;
+      typingDone = null;
+      done && done();
+    };
+    typingTimer = setInterval(() => {
+      i++;
+      el.textContent = text.slice(0, i);
+      if (i >= text.length) typingDone();
+    }, 38);
+  }
+  // 台詞をクリックすると全文表示
+  document.querySelector("#screen-play .frame").addEventListener("click", () => typingDone && typingDone());
+
+  function show(id) {
+    ["screen-title", "screen-play", "screen-ending"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+    document.body.classList.toggle("stage-play", id !== "screen-title");
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+  }
+
+  // ---------- 進行 ----------
+  function startGame() {
+    idx = 0; logic = 0; heart = 0; history = [];
+    updateMeters();
+    show("screen-play");
+    renderRound();
+  }
+
+  function renderRound() {
+    const round = ROUNDS[idx];
+    $("round-label").textContent = `第${idx + 1}問 / ${ROUNDS.length}`;
+    $("speaker").textContent = "プトレマリオ博士";
+    $("narration").classList.add("hidden");
+    $("next").classList.add("hidden");
+    const list = $("choices");
+    list.innerHTML = "";
+    list.classList.add("hidden");
+    typeLine(round.q, () => {
+      shuffle(round.choices).forEach((c) => {
+        const li = document.createElement("li");
+        const b = document.createElement("button");
+        b.className = "choice";
+        b.textContent = c.text;
+        b.addEventListener("click", () => choose(c));
+        li.appendChild(b);
+        list.appendChild(li);
+      });
+      list.classList.remove("hidden");
+      const first = list.querySelector("button");
+      first && first.focus({ preventScroll: true });
+    });
+  }
+
+  function choose(c) {
+    logic += c.logic;
+    heart += c.heart;
+    history.push({ q: ROUNDS[idx].q, c });
+    $("choices").classList.add("hidden");
+    updateMeters();
+    typeLine(c.reaction, () => {
+      const n = $("narration");
+      n.textContent = c.narr;
+      n.classList.remove("hidden");
+      const next = $("next");
+      next.textContent = idx + 1 < ROUNDS.length ? "次へ" : "結末を見る";
+      next.classList.remove("hidden");
+      next.focus({ preventScroll: true });
+    });
+  }
+
+  function next() {
+    idx++;
+    if (idx < ROUNDS.length) renderRound();
+    else showEnding();
+  }
+
+  function decideEnding() {
+    const l = logic >= LOGIC_OK, h = heart >= HEART_OK;
+    if (l && h) return "true";
+    if (l) return "argued";
+    if (h) return "friendly";
+    return "banned";
+  }
+
+  let endingKey = null;
+  function showEnding() {
+    endingKey = decideEnding();
+    const e = ENDINGS[endingKey];
+    $("ending-title").textContent = e.title;
+    $("ending-body").innerHTML = e.body.map((p) => `<p>${p}</p>`).join("");
+    $("end-logic").style.width = "0%";
+    $("end-heart").style.width = "0%";
+    if (endingKey === "true") targetT = 1;
+    if (endingKey === "banned") targetT = 0;
+
+    const tagName = { kind: "寄り添い", argue: "論破", bad: "悪手" };
+    $("recap").innerHTML = history.map((h, i) =>
+      `<li><span class="tag ${h.c.type}">${tagName[h.c.type]}</span><span>${h.c.text}</span></li>`
+    ).join("");
+
+    show("screen-ending");
+    requestAnimationFrame(() => {
+      $("end-logic").style.width = (logicRatio() * 100).toFixed(1) + "%";
+      $("end-heart").style.width = (heartRatio() * 100).toFixed(1) + "%";
+    });
+  }
+
+  function share() {
+    const e = ENDINGS[endingKey];
+    const text = `天動説論破シミュレーターで、結末「${e.title}」にたどり着きました。正しいことを言えば、人は動くのか。`;
+    const url = `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(location.href)}`;
+    window.open(url, "_blank", "noopener");
+  }
+
+  $("start").addEventListener("click", startGame);
+  $("next").addEventListener("click", next);
+  $("retry").addEventListener("click", startGame);
+  $("share").addEventListener("click", share);
+})();
+</script>
+</body>
+</html>
